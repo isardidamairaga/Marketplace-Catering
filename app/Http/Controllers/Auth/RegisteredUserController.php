@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\CustomerProfile;
+use App\Models\MerchantProfile;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -20,7 +22,7 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        return view('auth.register');
+        return view('auth.register-type');
     }
 
     /**
@@ -28,33 +30,101 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    protected function create(array $data)
-    {
-        return DB::transaction(function () use ($data) {
-            $user = User::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => Hash::make($data['password']),
-                'role' => $data['role']
+  
+        public function createMerchant(): View
+        {
+            return view('auth.register-merchant');
+        }
+    
+        public function createCustomer(): View
+        {
+            return view('auth.register-customer');
+        }
+    
+        public function storeMerchant(Request $request)
+        {
+            
+            $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+                'password' => ['required', 'confirmed', Rules\Password::defaults()],
+                'company_name' => ['required', 'string', 'max:255'],
+                'address' => ['required', 'string', 'max:255'],
+                'phone' => ['required', 'string', 'max:15'],
             ]);
     
-            if ($data['role'] === 'merchant') {
+           
+            $user = DB::transaction(function () use ($request) {
+                // Buat pengguna
+                $user = User::create([
+                    'name' => $request->name,
+                    'email' => $request->email,
+                    'password' => Hash::make($request->password),
+                    'role' => 'merchant',
+                ]);
+               
+    
+                // Buat profil Merchant
                 MerchantProfile::create([
                     'user_id' => $user->id,
-                    'company_name' => $data['company_name'],
-                    'address' => $data['address'],
-                    'phone' => $data['phone']
+                    'company_name' => $request->company_name,
+                    'description'=> $request->description,
+                    'address' => $request->address,
+                    'phone' => $request->phone,
                 ]);
-            } else {
+    
+                return $user;
+            });
+    
+         
+            event(new Registered($user));
+    
+    
+            Auth::login($user);
+    
+            // Redirect to the dashboard
+            return redirect(route('dashboard', absolute: false));
+        }
+    
+        public function storeCustomer(Request $request)
+        {
+            $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+                'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            ]);
+    
+      
+            $user = DB::transaction(function () use ($request) {
+
+                // Buat pengguna
+                $user = User::create([
+                    'name' => $request->name,
+                    'email' => $request->email,
+                    'password' => Hash::make($request->password),
+                    'role' => 'customer',
+                ]);
+    
+                // Buat profil Customer
                 CustomerProfile::create([
                     'user_id' => $user->id,
-                    'company_name' => $data['company_name'],
-                    'address' => $data['address'],
-                    'phone' => $data['phone']
+                    'company_name' => $request->company_name,
+                    'address' => $request->address,
+                    'phone' => $request->phone,
+              
                 ]);
-            }
     
-            return $user;
-        });
-    }
+                return $user;
+            });
+    
+            
+            event(new Registered($user));
+    
+           
+            Auth::login($user);
+    
+           
+            return redirect(route('dashboard', absolute: false));
+        }
 }
+    
