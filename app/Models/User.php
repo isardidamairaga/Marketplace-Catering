@@ -20,6 +20,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -31,6 +32,15 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+    public function merchant()
+    {
+        return $this->hasOne(MerchantProfile::class);
+    }
+
+    public function customer()
+    {
+        return $this->hasOne(CustomerProfile::class);
+    }
 
     /**
      * Get the attributes that should be cast.

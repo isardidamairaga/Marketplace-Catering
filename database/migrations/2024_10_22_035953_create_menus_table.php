@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('menus', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('merchant_id')->constrained('merchant_profiles');
+            $table->string('name');
+            $table->text('description');
+            $table->decimal('price', 10, 2);
+            $table->string('image')->nullable();
+            $table->boolean('is_available')->default(true);
             $table->timestamps();
         });
     }

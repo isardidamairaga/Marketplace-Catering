@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('customer_id')->constrained('customer_profiles');
+            $table->foreignId('merchant_id')->constrained('merchant_profiles');
+            $table->date('delivery_date');
+            $table->enum('status', ['pending', 'confirmed', 'delivered', 'cancelled']);
+            $table->decimal('total_amount', 10, 2);
+            $table->text('delivery_notes')->nullable();
             $table->timestamps();
         });
     }
